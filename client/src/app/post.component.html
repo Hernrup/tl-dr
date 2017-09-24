@@ -1,0 +1,5 @@
+<div fxLayout="row" fxLayoutAlign="space-around stretch" fxLayoutWrap>
+    <post-list-item *ngFor="let post of postes" [post]=post (click)="onSelect(post)"></post-list-item>
+</div>
+
+<div class="error" *ngIf="error">{{error}}</div>

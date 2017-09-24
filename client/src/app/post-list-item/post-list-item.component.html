@@ -1,0 +1,13 @@
+<md-card>
+  <md-card-header>
+    <md-card-title>{{post.title | slice:0:50}}</md-card-title>
+    <md-card-subtitle>{{post.date}}</md-card-subtitle>
+  </md-card-header>
+  <img md-card-image src="{{ post.image }}"/>
+  <md-card-content>
+    {{ post.body }}
+  </md-card-content>
+  <md-card-actions>
+  </md-card-actions>
+</md-card>
+

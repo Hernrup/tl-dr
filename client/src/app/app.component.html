@@ -1,0 +1,29 @@
+<md-sidenav-container fullscreen>
+    <md-sidenav #sidenav mode="{{isMobileView?'over':'side'}}" opened="{{!isMobileView}}" disableClose="{{!isMobileView}}">
+        <nav>
+            <md-toolbar class="sidebar-header" color="primary">
+                <span><md-icon aria-hidden="true">thumb_up</md-icon></span>
+            </md-toolbar>
+        </nav>
+
+        <md-toolbar>
+            <md-toolbar-row>
+                <md-list>
+                    <md-list-item><a routerLink="/posts" routerLinkActive="active">Postes</a></md-list-item>
+                </md-list>
+            </md-toolbar-row>
+        </md-toolbar>
+
+    </md-sidenav>
+
+    <div class="content">
+        <md-toolbar>
+            <button md-button (click)="sidenav.toggle()"><md-icon>menu</md-icon></button>
+        </md-toolbar>
+
+        <router-outlet></router-outlet>
+    </div>
+</md-sidenav-container>
+
+
+

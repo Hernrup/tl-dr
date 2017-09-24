@@ -1,0 +1,36 @@
+version: '3'
+services:
+
+    client:
+        image: docker.hernrup.se/tldr/client:latest
+        build:
+            context: .
+            dockerfile: ./client/Dockerfile
+        volumes:
+            - ./client:/opt/app
+        ports:
+            - "5002:4200"
+            - "4200:4200"
+        command: "yarn run start"
+
+    server:
+        image: docker.hernrup.se/tldr/server:latest
+        build:
+            context: .
+            dockerfile: ./server/Dockerfile
+        ports:
+            - "5001:5000"
+        volumes:
+            - ./server:/src
+        command: "flask run -h 0.0.0.0"
+
+    nginx:
+        image: docker.hernrup.se/tldr/nginx:latest
+        build:
+            context: .
+            dockerfile: nginx/Dockerfile
+        ports:
+            - "80:80"
+        volumes:
+            - ./images:/www/static/img
+
