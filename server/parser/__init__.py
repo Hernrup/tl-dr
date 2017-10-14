@@ -1,120 +1,93 @@
-from posixpath import join as posix_join
-import os
+from markdown import Markdown
+import dateutil.parser
+import itertools
 
-DEFAULT_CONFIG = {
-    'PATH': os.curdir,
-    'ARTICLE_PATHS': [''],
-    'ARTICLE_EXCLUDES': [],
-    'PAGE_PATHS': ['pages'],
-    'PAGE_EXCLUDES': [],
-    'OUTPUT_PATH': 'output',
-    'READERS': {},
-    'STATIC_PATHS': ['images'],
-    'STATIC_EXCLUDES': [],
-    'STATIC_EXCLUDE_SOURCES': True,
-    'THEME_STATIC_DIR': 'theme',
-    'THEME_STATIC_PATHS': ['static', ],
-    'FEED_ALL_ATOM': posix_join('feeds', 'all.atom.xml'),
-    'CATEGORY_FEED_ATOM': posix_join('feeds', '%s.atom.xml'),
-    'AUTHOR_FEED_ATOM': posix_join('feeds', '%s.atom.xml'),
-    'AUTHOR_FEED_RSS': posix_join('feeds', '%s.rss.xml'),
-    'TRANSLATION_FEED_ATOM': posix_join('feeds', 'all-%s.atom.xml'),
-    'FEED_MAX_ITEMS': '',
-    'RSS_FEED_SUMMARY_ONLY': True,
-    'SITEURL': '',
-    'SITENAME': 'A Pelican Blog',
-    'DISPLAY_PAGES_ON_MENU': True,
-    'DISPLAY_CATEGORIES_ON_MENU': True,
-    'DOCUTILS_SETTINGS': {},
-    'OUTPUT_SOURCES': False,
-    'OUTPUT_SOURCES_EXTENSION': '.text',
-    'USE_FOLDER_AS_CATEGORY': True,
-    'DEFAULT_CATEGORY': 'misc',
-    'WITH_FUTURE_DATES': True,
-    'CSS_FILE': 'main.css',
-    'NEWEST_FIRST_ARCHIVES': True,
-    'REVERSE_CATEGORY_ORDER': False,
-    'DELETE_OUTPUT_DIRECTORY': False,
-    'OUTPUT_RETENTION': [],
-    'INDEX_SAVE_AS': 'index.html',
-    'ARTICLE_URL': '{slug}.html',
-    'ARTICLE_SAVE_AS': '{slug}.html',
-    'ARTICLE_ORDER_BY': 'reversed-date',
-    'ARTICLE_LANG_URL': '{slug}-{lang}.html',
-    'ARTICLE_LANG_SAVE_AS': '{slug}-{lang}.html',
-    'DRAFT_URL': 'drafts/{slug}.html',
-    'DRAFT_SAVE_AS': posix_join('drafts', '{slug}.html'),
-    'DRAFT_LANG_URL': 'drafts/{slug}-{lang}.html',
-    'DRAFT_LANG_SAVE_AS': posix_join('drafts', '{slug}-{lang}.html'),
-    'PAGE_URL': 'pages/{slug}.html',
-    'PAGE_SAVE_AS': posix_join('pages', '{slug}.html'),
-    'PAGE_ORDER_BY': 'basename',
-    'PAGE_LANG_URL': 'pages/{slug}-{lang}.html',
-    'PAGE_LANG_SAVE_AS': posix_join('pages', '{slug}-{lang}.html'),
-    'STATIC_URL': '{path}',
-    'STATIC_SAVE_AS': '{path}',
-    'STATIC_CREATE_LINKS': False,
-    'STATIC_CHECK_IF_MODIFIED': False,
-    'CATEGORY_URL': 'category/{slug}.html',
-    'CATEGORY_SAVE_AS': posix_join('category', '{slug}.html'),
-    'TAG_URL': 'tag/{slug}.html',
-    'TAG_SAVE_AS': posix_join('tag', '{slug}.html'),
-    'AUTHOR_URL': 'author/{slug}.html',
-    'AUTHOR_SAVE_AS': posix_join('author', '{slug}.html'),
-    'PAGINATION_PATTERNS': [
-        (0, '{name}{number}{extension}', '{name}{number}{extension}'),
-    ],
-    'YEAR_ARCHIVE_SAVE_AS': '',
-    'MONTH_ARCHIVE_SAVE_AS': '',
-    'DAY_ARCHIVE_SAVE_AS': '',
-    'RELATIVE_URLS': False,
-    'DEFAULT_LANG': 'en',
-    'DIRECT_TEMPLATES': ['index', 'tags', 'categories', 'authors', 'archives'],
-    'EXTRA_TEMPLATES_PATHS': [],
-    'PAGINATED_DIRECT_TEMPLATES': ['index'],
-    'PELICAN_CLASS': 'pelican.Pelican',
-    'DEFAULT_DATE_FORMAT': '%a %d %B %Y',
-    'DATE_FORMATS': {},
-    'MARKDOWN': {
-        'extension_configs': {
-            'markdown.extensions.codehilite': {'css_class': 'highlight'},
-            'markdown.extensions.extra': {},
-            'markdown.extensions.meta': {},
-        },
-        'output_format': 'html5',
-    },
-    'JINJA_FILTERS': {},
-    'JINJA_ENVIRONMENT': {
-        'trim_blocks': True,
-        'lstrip_blocks': True,
-        'extensions': [],
-    },
-    'LOG_FILTER': [],
-    'LOCALE': [''],  # defaults to user locale
-    'DEFAULT_PAGINATION': False,
-    'DEFAULT_ORPHANS': 0,
-    'DEFAULT_METADATA': {},
-    'FILENAME_METADATA': r'(?P<date>\d{4}-\d{2}-\d{2}).*',
-    'PATH_METADATA': '',
-    'EXTRA_PATH_METADATA': {},
-    'ARTICLE_PERMALINK_STRUCTURE': '',
-    'TYPOGRIFY': False,
-    'TYPOGRIFY_IGNORE_TAGS': [],
-    'SUMMARY_MAX_LENGTH': 50,
-    'PLUGIN_PATHS': [],
-    'PLUGINS': [],
-    'PYGMENTS_RST_OPTIONS': {},
-    'TEMPLATE_PAGES': {},
-    'IGNORE_FILES': ['.#*'],
-    'SLUG_SUBSTITUTIONS': (),
-    'INTRASITE_LINK_REGEX': '[{|](?P<what>.*?)[|}]',
-    'SLUGIFY_SOURCE': 'title',
-    'CACHE_CONTENT': False,
-    'CONTENT_CACHING_LAYER': 'reader',
-    'CACHE_PATH': 'cache',
-    'GZIP_CACHE': True,
-    'CHECK_MODIFIED_METHOD': 'mtime',
-    'LOAD_CONTENT_CACHE': False,
-    'WRITE_SELECTED': [],
-    'FORMATTED_FIELDS': ['summary'],
-}
+
+def _md_factory():
+    md = Markdown(extensions=[
+        'markdown.extensions.extra',
+        'markdown.extensions.meta',
+        'markdown.extensions.toc'
+    ])
+    return md
+
+
+def _parse_metadata(metadata):
+    """Return the dict containing document metadata"""
+    MULTI_ITEM_KEYS = ['tags']
+    HTML_ITEM_KEYS = ['abstract']
+    DATE_KEYS = ['date']
+
+    for k, v in metadata.items():
+        if k not in MULTI_ITEM_KEYS:
+            metadata[k] = _metadata_to_single_value(metadata[k])
+        else:
+            metadata[k] = _metadata_to_list(metadata[k])
+
+        if k in HTML_ITEM_KEYS:
+            metadata[k] = _metadata_to_html(metadata[k])
+
+        if k in DATE_KEYS:
+            metadata[k] = _metadata_to_datetime(metadata[k])
+
+    return metadata
+
+
+def _metadata_to_single_value(value):
+    if len(value) > 1:
+        raise ValueError('multiple values found where one expected')
+    return value[0]
+
+
+def _metadata_to_html(value):
+    return _md_factory().convert(value)
+
+
+def _metadata_to_list(value):
+    # flatten
+    l = list(itertools.chain(*[v.split(',') for v in value]))
+    # strip
+    l = [v.strip() for v in l]
+    # uniqueify
+    l = set(l)
+    return l
+
+
+def _metadata_to_datetime(value):
+    return dateutil.parser.parse(value)
+
+
+def parse(source_path):
+    """Parse content and metadata of markdown files"""
+    md = _md_factory()
+
+    with open(source_path) as f:
+        data = f.read()
+        content = md.convert(data)
+
+    try:
+        metadata = _parse_metadata(md.Meta)
+    except AttributeError:
+        metadata = {}
+
+    return Article(
+        title=metadata.get('title'),
+        abstract=metadata.get('abstract'),
+        date=metadata.get('date'),
+        tags=metadata.get('tags'),
+        image=metadata.get('image'),
+        md=data,
+        html=content
+    )
+
+
+class Article():
+
+    def __init__(self, title, abstract, date, tags, image, md, html):
+        self.title = title
+        self.abstract = abstract
+        self.date = date
+        self.tags = tags
+        self.image = image
+        self.md = md
+        self.html = html

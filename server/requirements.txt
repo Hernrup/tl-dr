@@ -40,3 +40,5 @@ Werkzeug==0.12.2
 flask-cors
 pytest
 pytest-watch
+docutils
+markdown
